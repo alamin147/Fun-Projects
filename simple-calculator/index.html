@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Calculator</title>
+    <link rel="stylesheet" href="index.css">
+  </head>
+  <body>
+   
+    <div id="displays"></div>
+   
+    <div>
+        <button onclick="take('C')" id="C">C</button>
+    </div>
+    <div class="container">
+        <button onclick="take(1)">1</button>
+        <button onclick="take(2)">2</button>
+        <button onclick="take(3)">3</button>
+        <button onclick="take(4)">4</button>
+        <button onclick="take(5)">5</button>
+        <button onclick="take(6)">6</button>
+        <button onclick="take(7)">7</button>
+        <button onclick="take(8)">8</button>
+        <button onclick="take(9)">9</button>
+        <button onclick="take('+')" class="operator">+</button>
+        <button onclick="take('-')" class="operator">-</button>
+        <button onclick="take('*')" class="operator">*</button>
+        <button onclick="take('/')" class="operator">/</button>
+    </div>
+    <button onclick="take('=')" class="equal">Equal</button>
+
+
+    <script src="index.js"></script>
+    </body>
+</html>
