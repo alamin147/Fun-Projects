@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>CSS Battle #1</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: #f5d6b4;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .square {
+        position: absolute;
+        top: 50%;
+        bottom: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #d86f45;
+        width: 150px;
+        height: 150px;
+      }
+      .hori {
+        background-color: #d86f45;
+        position: absolute;
+        top: 50%;
+        bottom: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 50px;
+        height: 250px;
+      }
+      .ver {
+        background-color: #d86f45;
+        position: absolute;
+        top: 50%;
+        bottom: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        z-index: 100;
+        width: 250px;
+        height: 50px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="square">
+      <div class="hori"></div>
+      <div class="ver"></div>
+    </div>
+  </body>
+</html>
