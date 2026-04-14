@@ -1,0 +1,34 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.parent {
+  background-color: #62306d;
+  width: 100vw;
+  height: 100vh;
+  /* max-width: 100%; */
+}
+.child {
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: conic-gradient(#f7ec7d 0% 75%, #e38f66 75% 100%);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.inner-child {
+  background-color: #62306d;
+  border-radius: 50%;
+  border: 5px solid #62306d;
+  width: 160px;
+  height: 160px;
+  align-self: center;
+  justify-self: center;
+  z-index: 2;
+}
