@@ -69,8 +69,10 @@ export default async function handler(req, res) {
 
     const years = yearsData.data.user.contributionsCollection.contributionYears;
 
-    // 🔹 STEP 2: Get total contributions across all years (public + private)
+    // 🔹 STEP 2: Get total contributions, PRs, and issues across all years
     let totalContributionsAllTime = 0;
+    let totalPRs = 0;
+    let totalIssues = 0;
 
     for (const year of years) {
       const yearlyQuery = `
@@ -83,6 +85,8 @@ export default async function handler(req, res) {
             contributionCalendar {
               totalContributions
             }
+            totalPullRequestContributions
+            totalIssueContributions
           }
         }
       }`;
@@ -97,25 +101,22 @@ export default async function handler(req, res) {
       });
 
       const dataYear = await resYear.json();
-      totalContributionsAllTime +=
-        dataYear.data.user.contributionsCollection.contributionCalendar
-          .totalContributions;
+      const col = dataYear.data.user.contributionsCollection;
+      totalContributionsAllTime += col.contributionCalendar.totalContributions;
+      totalPRs += col.totalPullRequestContributions;
+      totalIssues += col.totalIssueContributions;
     }
 
-    // 🔹 STEP 3: Fetch all repositories
+    // 🔹 STEP 3: Fetch owned repos (stars) and followers
     const query = `
     {
       user(login: "${username}") {
-        name
-        repositories(first: 100, affiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER]) {
+        followers {
           totalCount
+        }
+        repositories(first: 100, affiliations: [OWNER]) {
           nodes {
             stargazerCount
-            forkCount
-            isPrivate
-            owner {
-              login
-            }
           }
         }
       }
@@ -133,56 +134,12 @@ export default async function handler(req, res) {
     const data1 = await res1.json();
     if (!data1.data?.user) throw new Error("User not found");
 
+    const followers = data1.data.user.followers.totalCount;
     let totalStars = 0;
-    const ownedRepos = new Set();
 
     data1.data.user.repositories.nodes.forEach((repo) => {
-      if (repo.owner.login === username) {
-        totalStars += repo.stargazerCount;
-        ownedRepos.add(repo.owner.login);
-      }
+      totalStars += repo.stargazerCount;
     });
-
-    // Fetch commits, contributions, and followers
-    const query2 = `
-    {
-      user(login: "${username}") {
-        followers {
-          totalCount
-        }
-        contributionsCollection {
-          totalCommitContributions
-          totalIssueContributions
-          totalPullRequestContributions
-          totalRepositoriesWithContributedCommits
-          totalRepositoriesWithContributedIssues
-          totalRepositoriesWithContributedPullRequests
-        }
-      }
-    }`;
-
-    const res2 = await fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`
-      },
-      body: JSON.stringify({ query: query2 })
-    });
-
-    const data2 = await res2.json();
-    const contrib = data2.data.user.contributionsCollection;
-    const followers = data2.data.user.followers.totalCount;
-
-    const totalCommits = contrib.totalCommitContributions;
-    const totalPRs = contrib.totalPullRequestContributions;
-    const totalIssues = contrib.totalIssueContributions;
-
-    const uniqueRepos = Math.max(
-      contrib.totalRepositoriesWithContributedCommits,
-      contrib.totalRepositoriesWithContributedPullRequests,
-      contrib.totalRepositoriesWithContributedIssues
-    );
 
     const rating = calculateRating(totalContributionsAllTime, totalStars, totalPRs, totalIssues, followers);
 

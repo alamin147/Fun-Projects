@@ -77,8 +77,9 @@ export default async function handler(req, res) {
           .totalContributions;
     }
 
-    // 🔹 STEP 3: First contribution date
+    // 🔹 STEP 3: First contribution date + all historical days for longest streak
     let firstContributionDate = null;
+    const allHistoricalDays = [];
     const sortedYears = [...years].sort((a, b) => a - b);
 
     for (const year of sortedYears) {
@@ -117,15 +118,26 @@ export default async function handler(req, res) {
 
       const days = weeks.flatMap((w) => w.contributionDays);
 
-      const firstDay = days.find((d) => d.contributionCount > 0);
+      allHistoricalDays.push(...days);
 
-      if (firstDay) {
-        firstContributionDate = firstDay.date;
-        break;
+      if (!firstContributionDate) {
+        const firstDay = days.find((d) => d.contributionCount > 0);
+        if (firstDay) firstContributionDate = firstDay.date;
       }
     }
 
-    // 🔹 STEP 4: Streak data
+    // Deduplicate by date (weeks can overlap year boundaries) and sort ascending
+    const uniqueDaysMap = new Map();
+    for (const day of allHistoricalDays) {
+      if (!uniqueDaysMap.has(day.date)) {
+        uniqueDaysMap.set(day.date, day);
+      }
+    }
+    const allSortedDays = [...uniqueDaysMap.values()].sort((a, b) =>
+      a.date.localeCompare(b.date)
+    );
+
+    // 🔹 STEP 4: Recent contribution data for current streak
     const streakQuery = `
     {
       user(login: "${username}") {
@@ -153,27 +165,43 @@ export default async function handler(req, res) {
 
     const streakData = await streakRes.json();
 
-    const weeks =
+    const recentWeeks =
       streakData.data.user.contributionsCollection.contributionCalendar.weeks;
 
-    const allDays = weeks.flatMap((w) => w.contributionDays);
+    const allDays = recentWeeks.flatMap((w) => w.contributionDays);
 
-    // 🔥 CURRENT STREAK
+    // 🔥 CURRENT STREAK (uses recent data — a current streak can't span >1 year)
     let current = 0;
     let currentStart = null;
-    let started = false;
 
-    for (let i = allDays.length - 1; i >= 0; i--) {
-      if (allDays[i].contributionCount > 0) {
-        current++;
-        currentStart = allDays[i].date;
-        started = true;
-      } else if (started) {
-        break;
+    const todayStr = new Date().toISOString().split("T")[0];
+    let startIndex = allDays.length - 1;
+
+    // Grace period: skip today if it has no contributions yet (day may not be over)
+    if (startIndex >= 0 && allDays[startIndex].date === todayStr && allDays[startIndex].contributionCount === 0) {
+      startIndex--;
+    }
+
+    // Only count a streak if the most recent candidate day is today or yesterday
+    if (startIndex >= 0) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const candidateDiff = Math.round(
+        (new Date(todayStr) - new Date(allDays[startIndex].date)) / msPerDay
+      );
+
+      if (candidateDiff <= 1) {
+        for (let i = startIndex; i >= 0; i--) {
+          if (allDays[i].contributionCount > 0) {
+            current++;
+            currentStart = allDays[i].date;
+          } else {
+            break;
+          }
+        }
       }
     }
 
-    // 🏆 LONGEST STREAK
+    // 🏆 LONGEST STREAK (uses full history across all years)
     let longest = 0;
     let temp = 0;
 
@@ -181,16 +209,16 @@ export default async function handler(req, res) {
     let longestEnd = null;
     let tempStart = null;
 
-    for (let i = 0; i < allDays.length; i++) {
-      if (allDays[i].contributionCount > 0) {
+    for (let i = 0; i < allSortedDays.length; i++) {
+      if (allSortedDays[i].contributionCount > 0) {
         temp++;
 
-        if (temp === 1) tempStart = allDays[i].date;
+        if (temp === 1) tempStart = allSortedDays[i].date;
 
         if (temp > longest) {
           longest = temp;
           longestStart = tempStart;
-          longestEnd = allDays[i].date;
+          longestEnd = allSortedDays[i].date;
         }
       } else {
         temp = 0;
